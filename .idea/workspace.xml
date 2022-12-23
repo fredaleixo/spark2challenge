@@ -5,16 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b4b1cd7-fd09-4edf-804e-19fd353d8233" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/google-play-store-apps/googleplaystore.csv" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/google-play-store-apps/googleplaystore_user_reviews.csv" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/google-play-store-apps/license.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/org/example/App.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/org/example/App.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/org/example/SparkSessionTest.scala" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/scala/samples/junit.scala" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/scala/samples/scalatest.scala" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/scala/samples/specs.scala" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
