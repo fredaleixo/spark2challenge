@@ -5,20 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3b4b1cd7-fd09-4edf-804e-19fd353d8233" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/scala_compiler.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/scala/org/example/App.scala" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/scala/org/example/SparkSessionTest.scala" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/scala/samples/junit.scala" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/scala/samples/scalatest.scala" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/scala/samples/specs.scala" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/google-play-store-apps/googleplaystore.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/google-play-store-apps/googleplaystore_user_reviews.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/google-play-store-apps/license.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/org/example/App.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/org/example/App.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/org/example/SparkSessionTest.scala" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/scala/samples/junit.scala" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/scala/samples/scalatest.scala" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/scala/samples/specs.scala" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,7 +56,26 @@
     "project.structure.side.proportion": "0.0"
   }
 }]]></component>
-  <component name="RunManager">
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Fred Aleixo\Desktop\challenges\spark2challenge\google-play-store-apps" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Application.App">
+    <configuration name="App" type="Application" factoryName="Application" temporary="true">
+      <option name="INCLUDE_PROVIDED_SCOPE" value="true" />
+      <option name="MAIN_CLASS_NAME" value="org.example.App" />
+      <module name="spark2challenge" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.example.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="SparkSessionTest" type="Application" factoryName="Application" temporary="true">
       <option name="INCLUDE_PROVIDED_SCOPE" value="true" />
       <option name="MAIN_CLASS_NAME" value="org.example.SparkSessionTest" />
@@ -75,8 +90,13 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <list>
+      <item itemvalue="Application.App" />
+      <item itemvalue="Application.SparkSessionTest" />
+    </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Application.App" />
         <item itemvalue="Application.SparkSessionTest" />
       </list>
     </recent_temporary>
