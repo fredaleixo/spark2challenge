@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ScalaCompilerConfiguration">
+    <profile name="Maven 1" modules="spark2challenge">
+      <parameters>
+        <parameter value="-dependencyfile" />
+        <parameter value="C:\Users\Fred Aleixo\Desktop\challenges\spark2challenge\target/.scala_dependencies" />
+      </parameters>
+    </profile>
+  </component>
+</project>
