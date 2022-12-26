@@ -1,5 +1,5 @@
 package org.example
-import org.apache.spark.sql.{Column, DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.IOUtils
@@ -120,15 +120,41 @@ object App {
     merge(OutputSrcPath, Part2OutputDstPath)
   }
 
+  def part3Func(spark: SparkSession): DataFrame = {
+    val df = spark.read.option("header", "true").csv(PlayStorePath)
+
+    df.createOrReplaceTempView("data")
+
+    //This will get all apps WITHOUT merging categories, WITHOUT size and WITHOUT array of strings in genre.
+    //Dates are also not being converted properly.
+    //TODO: fix missing parts, then modify query to select only unique apps. Merge missing categories later
+    spark.sql("" +
+      "Select App, " +
+      "       Category as Categories," +
+      "       Rating, " +
+      "       Reviews, " +
+      "       Installs," +
+      "       Type," +
+      "       CAST(Price as DECIMAL(9,2)) * 0.9 as Price," +
+      "       `Content Rating` as Content_Rating," +
+      "       Genres," +
+      "       CAST(`Last Updated` as date) as Last_Updated," +
+      "       `Current Ver` as Current_Version," +
+      "       `Android Ver` as Minimum_Android_Version " +
+      "FROM data d")
+  }
+
   def main(args : Array[String]) {
 
     val spark: SparkSession = SparkSession.builder
       .appName("test")
       .master("local[2]")
       .getOrCreate()
-    
+
     //val df_1 = part1Func(spark, false)
     //df_1.show()
-    part2Func(spark)
+    //part2Func(spark)
+    val df_3 = part3Func(spark)
+    df_3.show()
   }
 }
