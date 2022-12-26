@@ -1,14 +1,76 @@
 package org.example
 import org.apache.spark.sql.{Column, DataFrame, SparkSession}
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.io.IOUtils
+import java.io.IOException
+
 
 /**
  * @author Frederico Aleixo
+ *         TODO REMOVE ORDER BY IN PART 1
  */
 object App {
+  //Constants
+  val UserReviewsPath = "google-play-store-apps/googleplaystore_user_reviews.csv"
+  val PlayStorePath = "google-play-store-apps/googleplaystore.csv"
+  val OutputSrcPath = "output/intermediate"
+  val Part2OutputDstPath = "output/best_apps.csv"
 
+
+  //Auxiliary methods
+  def copyMerge(
+                 srcFS: FileSystem, srcDir: Path,
+                 dstFS: FileSystem, dstFile: Path,
+                 deleteSource: Boolean, conf: Configuration
+               ): Boolean = {
+
+    //Disabling checksums so that the produced result is only a single file
+    srcFS.setWriteChecksum(false)
+    srcFS.setVerifyChecksum(false)
+
+    if (dstFS.exists(dstFile)) {
+      throw new IOException(s"Target $dstFile already exists")
+    }
+
+    // Source path is expected to be a directory:
+    if (srcFS.getFileStatus(srcDir).isDirectory) {
+
+      val outputFile = dstFS.create(dstFile)
+      try {
+        srcFS
+          .listStatus(srcDir)
+          .sortBy(_.getPath.getName)
+          .collect {
+            case status if status.isFile =>
+              val inputFile = srcFS.open(status.getPath)
+              try {
+                IOUtils.copyBytes(inputFile, outputFile, conf, false)
+              }
+              finally {
+                inputFile.close()
+              }
+          }
+      } finally {
+        outputFile.close()
+      }
+
+      if (deleteSource) srcFS.delete(srcDir, true) else true
+    }
+    else false
+  }
+
+  def merge(srcPath: String, dstPath: String): Unit = {
+    val hadoopConfig = new Configuration()
+    val hdfs = FileSystem.get(hadoopConfig)
+    copyMerge(hdfs, new Path(srcPath), hdfs, new Path(dstPath), true, hadoopConfig)
+    // the "true" setting deletes the source files once they are merged into the new output
+  }
+
+
+  //Challenge methods
   def part1Func(spark: SparkSession, includeNans: Boolean): DataFrame = {
-    val pathIn = "google-play-store-apps/googleplaystore_user_reviews.csv"
-    val df = spark.read.option("header","true").csv(pathIn)
+    val df = spark.read.option("header","true").csv(UserReviewsPath)
 
     df.createOrReplaceTempView("data")
 
@@ -40,14 +102,33 @@ object App {
     }
   }
 
+  def part2Func(spark: SparkSession): Unit = {
+    val df = spark.read.option("header", "true").csv(PlayStorePath)
+
+    df.createOrReplaceTempView("data")
+
+    spark.sql("" +
+      "Select App, Rating " +
+      "FROM data " +
+      "WHERE Rating >= 4.0 " +
+      "ORDER BY Rating DESC")
+
+    df.write.option("header", true)
+            .option("delimiter", "&")
+            .mode("overwrite")
+            .csv(OutputSrcPath)
+    merge(OutputSrcPath, Part2OutputDstPath)
+  }
+
   def main(args : Array[String]) {
 
     val spark: SparkSession = SparkSession.builder
       .appName("test")
       .master("local[2]")
       .getOrCreate()
-
-    val df_1 = part1Func(spark, false)
-    df_1.show()
+    
+    //val df_1 = part1Func(spark, false)
+    //df_1.show()
+    part2Func(spark)
   }
 }
