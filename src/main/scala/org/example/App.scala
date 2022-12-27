@@ -3,7 +3,6 @@ import org.apache.spark.sql.{DataFrame, SparkSession, functions}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.IOUtils
-import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.{collect_set, desc, first}
 
 import java.io.IOException
@@ -16,8 +15,10 @@ object App {
   //Constants
   val UserReviewsPath = "google-play-store-apps/googleplaystore_user_reviews.csv"
   val PlayStorePath = "google-play-store-apps/googleplaystore.csv"
-  val OutputSrcPath = "output/intermediate"
+  val Part2OutputSrcPath = "output/intermediate2"
   val Part2OutputDstPath = "output/best_apps.csv"
+  val Part4OutputSrcPath = "output/intermediate4"
+  val Part4OutputDstPath = "output/googleplaystore_cleaned.parquet"
 
 
   //Auxiliary methods
@@ -87,7 +88,7 @@ object App {
         "  GROUP BY App) " +
         "SELECT DISTINCT data.App, IFNULL(Average_Sentiment_Polarity, 0) as Average_Sentiment_Polarity " +
         "FROM data " +
-        "LEFT JOIN nonNanAvgs ON data.App = nonNanAvgs.App")
+        "LEFT JOIN nonNanAvgs ON data.App = nonNanAvgs.App ")
 
     } else {
       //Assuming that 'nan' values for Sentiment_Polarity are included and considered to have a value of nanValue
@@ -103,21 +104,21 @@ object App {
   }
 
   def part2Func(spark: SparkSession): Unit = {
-    val df = spark.read.option("header", "true").csv(PlayStorePath)
+    var df = spark.read.option("header", "true").csv(PlayStorePath)
 
     df.createOrReplaceTempView("data")
 
-    spark.sql("" +
+    df = spark.sql("" +
       "Select App, Rating " +
       "FROM data " +
-      "WHERE Rating >= 4.0 " +
+      "WHERE Rating != 'NaN' AND Rating >= 4.0 AND Rating <= 5.0 " +
       "ORDER BY Rating DESC")
 
     df.write.option("header", true)
             .option("delimiter", "&")
             .mode("overwrite")
-            .csv(OutputSrcPath)
-    merge(OutputSrcPath, Part2OutputDstPath)
+            .csv(Part2OutputSrcPath)
+    merge(Part2OutputSrcPath, Part2OutputDstPath)
   }
 
   def part3Func(spark: SparkSession): DataFrame = {
@@ -127,11 +128,11 @@ object App {
 
     //Dataframe with the values cleaned
     //TODO: Invalid entries that have misplaced values in some columns would require additional clean up...
-    val clean_df = spark.sql("" +
+    val cleanDf = spark.sql("" +
       "Select App, " +
       "       Category as Categories," +
       "       CASE" +
-      "         WHEN Rating = 'NaN' then null" +
+      "         WHEN Rating = 'NaN' OR Rating > 5.0 then null" +
       "         ELSE Rating" +
       "       END AS Rating, " +
       "       Reviews, " +
@@ -150,20 +151,20 @@ object App {
       "FROM data d ")
 
     //Turn Genres from string to array of strings, with the categories still unmerged
-    val unmerged_df = clean_df.withColumn("Genres",functions.split(df("Genres"),";"))
+    val unmergedDf = cleanDf.withColumn("Genres",functions.split(df("Genres"),";"))
 
     //Merge categories of apps with the same name, keeping the review column with the highest reviews
-    val merged_categories_df = unmerged_df.groupBy("App")
+    val mergedCategoriesDf = unmergedDf.groupBy("App")
       .agg(
         collect_set("Categories").alias("Category"),
         functions.max("Reviews").alias("Reviews"),
       )
 
     //Create the final dataframe by joining the two dataframes using app name and reviews as keys
-    unmerged_df.createOrReplaceTempView("unmerged")
-    merged_categories_df.createOrReplaceTempView("merged")
+    unmergedDf.createOrReplaceTempView("unmerged")
+    mergedCategoriesDf.createOrReplaceTempView("merged")
     spark.sql("" +
-      "SELECT u.App," +
+      "SELECT DISTINCT u.App," +
       "       m.Category as Categories," +
       "       u.Rating," +
       "       u.Reviews," +
@@ -180,6 +181,17 @@ object App {
       "INNER JOIN unmerged u ON m.App = u.App AND m.Reviews = u.Reviews ")
   }
 
+  def part4Func(df1: DataFrame, df3: DataFrame): Unit = {
+    val innerJoinDf = df3.join(df1, df3("App") === df1("App"),"inner")
+                            .select(df3("*"),df1("Average_Sentiment_Polarity"))
+
+    innerJoinDf.write.option("header", true)
+      .mode("overwrite")
+      .option("compression","GZIP")
+      .parquet(Part4OutputSrcPath)
+    merge(Part4OutputSrcPath, Part4OutputDstPath)
+  }
+
   def main(args : Array[String]) {
 
     val spark: SparkSession = SparkSession.builder
@@ -187,10 +199,11 @@ object App {
       .master("local[2]")
       .getOrCreate()
 
-    val df_1 = part1Func(spark, false)
-    //df_1.show()
+    //val df1 = part1Func(spark, false)
+    //df1.show()
     //part2Func(spark)
-    val df_3 = part3Func(spark)
-    df_3.show()
+    val df3 = part3Func(spark)
+    df3.show()
+    //part4Func(df1, df3)
   }
 }
