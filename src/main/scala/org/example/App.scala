@@ -3,10 +3,8 @@ import org.apache.spark.sql.{DataFrame, SparkSession, functions}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.IOUtils
-import org.apache.spark.sql.functions.{collect_set, desc, first}
-
+import org.apache.spark.sql.functions.{avg, collect_set, count, explode, when}
 import java.io.IOException
-
 
 /**
  * @author Frederico Aleixo
@@ -19,6 +17,8 @@ object App {
   val Part2OutputDstPath = "output/best_apps.csv"
   val Part4OutputSrcPath = "output/intermediate4"
   val Part4OutputDstPath = "output/googleplaystore_cleaned.parquet"
+  val Part5OutputSrcPath = "output/intermediate5"
+  val Part5OutputDstPath = "output/googleplaystore_metrics.parquet"
 
 
   //Auxiliary methods
@@ -127,7 +127,7 @@ object App {
     df.createOrReplaceTempView("data")
 
     //Dataframe with the values cleaned
-    //TODO: Invalid entries that have misplaced values in some columns would require additional clean up...
+    //(Invalid entries that have misplaced values in some columns would require additional clean up)
     val cleanDf = spark.sql("" +
       "Select App, " +
       "       Category as Categories," +
@@ -192,6 +192,30 @@ object App {
     merge(Part4OutputSrcPath, Part4OutputDstPath)
   }
 
+  def part5Func(spark: SparkSession, df3: DataFrame): Unit = {
+    val reviewsDf = spark.read.option("header","true").csv(UserReviewsPath)
+
+    val joinedDf = df3.join(reviewsDf,df3("App") === reviewsDf("App"), "inner")
+                      .select(df3("*"),reviewsDf("Sentiment_Polarity"))
+
+    val cleanJoinedDf = joinedDf.withColumn("Sentiment_Polarity",
+                      when(joinedDf("Sentiment_Polarity") === "nan", "null")
+                      .otherwise(joinedDf("Sentiment_Polarity")))
+
+    val explodedDf = cleanJoinedDf.withColumn("Genre", explode(df3("Genres")))
+
+    val df4 = explodedDf.groupBy("Genre").agg(
+      count("App").alias("Count"),
+      avg("Rating").alias("Average_Rating"),
+      avg("Sentiment_Polarity").alias("Average_Sentiment_Polarity"))
+
+    df4.write.option("header", true)
+      .mode("overwrite")
+      .option("compression", "GZIP")
+      .parquet(Part5OutputSrcPath)
+    merge(Part5OutputSrcPath, Part5OutputDstPath)
+  }
+
   def main(args : Array[String]) {
 
     val spark: SparkSession = SparkSession.builder
@@ -199,11 +223,12 @@ object App {
       .master("local[2]")
       .getOrCreate()
 
-    //val df1 = part1Func(spark, false)
-    //df1.show()
-    //part2Func(spark)
+    val df1 = part1Func(spark, false)
+    df1.show()
+    part2Func(spark)
     val df3 = part3Func(spark)
     df3.show()
-    //part4Func(df1, df3)
+    part4Func(df1, df3)
+    part5Func(spark, df3)
   }
 }
