@@ -3,13 +3,14 @@ import org.apache.spark.sql.{DataFrame, SparkSession, functions}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.IOUtils
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions.{collect_set, desc, first}
 
 import java.io.IOException
 
 
 /**
  * @author Frederico Aleixo
- *         TODO REMOVE ORDER BY IN PART 1 and 3
  */
 object App {
   //Constants
@@ -86,8 +87,7 @@ object App {
         "  GROUP BY App) " +
         "SELECT DISTINCT data.App, IFNULL(Average_Sentiment_Polarity, 0) as Average_Sentiment_Polarity " +
         "FROM data " +
-        "LEFT JOIN nonNanAvgs ON data.App = nonNanAvgs.App " +
-        "ORDER BY data.App ASC")
+        "LEFT JOIN nonNanAvgs ON data.App = nonNanAvgs.App")
 
     } else {
       //Assuming that 'nan' values for Sentiment_Polarity are included and considered to have a value of nanValue
@@ -98,8 +98,7 @@ object App {
         "  FROM data) " +
         "SELECT App, IFNULL(AVG(COALESCE(Sentiment_Polarity," + nanValue + ")),0) as Average_Sentiment_Polarity " +
         "FROM nanToNull " +
-        "GROUP BY App " +
-        "ORDER BY App ASC")
+        "GROUP BY App ")
     }
   }
 
@@ -122,14 +121,13 @@ object App {
   }
 
   def part3Func(spark: SparkSession): DataFrame = {
-    var df = spark.read.option("header", "true").csv(PlayStorePath)
+    val df = spark.read.option("header", "true").csv(PlayStorePath)
 
     df.createOrReplaceTempView("data")
 
-    //This will get all apps WITHOUT merging categories. Also make sure that default values are respected
-    //TODO: fix missing parts, then modify query to select only unique apps. Merge missing categories later
-
-    df = spark.sql("" +
+    //Dataframe with the values cleaned
+    //TODO: Invalid entries that have misplaced values in some columns would require additional clean up...
+    val clean_df = spark.sql("" +
       "Select App, " +
       "       Category as Categories," +
       "       CASE" +
@@ -149,10 +147,37 @@ object App {
       "       TO_TIMESTAMP(`Last Updated`, 'MMMM d, yyyy') as Last_Updated," +
       "       `Current Ver` as Current_Version," +
       "       `Android Ver` as Minimum_Android_Version " +
-      "FROM data d " +
-      "ORDER BY App ASC")
+      "FROM data d ")
 
-    df.withColumn("Genres",functions.split(df("Genres"),";"))
+    //Turn Genres from string to array of strings, with the categories still unmerged
+    val unmerged_df = clean_df.withColumn("Genres",functions.split(df("Genres"),";"))
+
+    //Merge categories of apps with the same name, keeping the review column with the highest reviews
+    val merged_categories_df = unmerged_df.groupBy("App")
+      .agg(
+        collect_set("Categories").alias("Category"),
+        functions.max("Reviews").alias("Reviews"),
+      )
+
+    //Create the final dataframe by joining the two dataframes using app name and reviews as keys
+    unmerged_df.createOrReplaceTempView("unmerged")
+    merged_categories_df.createOrReplaceTempView("merged")
+    spark.sql("" +
+      "SELECT u.App," +
+      "       m.Category as Categories," +
+      "       u.Rating," +
+      "       u.Reviews," +
+      "       u.size," +
+      "       u.installs," +
+      "       u.type," +
+      "       u.price," +
+      "       u.Content_Rating," +
+      "       u.Genres," +
+      "       u.Last_Updated," +
+      "       u.Current_Version," +
+      "       u.Minimum_Android_Version " +
+      "FROM merged m " +
+      "INNER JOIN unmerged u ON m.App = u.App AND m.Reviews = u.Reviews ")
   }
 
   def main(args : Array[String]) {
@@ -162,7 +187,7 @@ object App {
       .master("local[2]")
       .getOrCreate()
 
-    //val df_1 = part1Func(spark, false)
+    val df_1 = part1Func(spark, false)
     //df_1.show()
     //part2Func(spark)
     val df_3 = part3Func(spark)
