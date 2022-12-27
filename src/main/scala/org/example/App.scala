@@ -1,14 +1,15 @@
 package org.example
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SparkSession, functions}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.io.IOUtils
+
 import java.io.IOException
 
 
 /**
  * @author Frederico Aleixo
- *         TODO REMOVE ORDER BY IN PART 1
+ *         TODO REMOVE ORDER BY IN PART 1 and 3
  */
 object App {
   //Constants
@@ -121,27 +122,37 @@ object App {
   }
 
   def part3Func(spark: SparkSession): DataFrame = {
-    val df = spark.read.option("header", "true").csv(PlayStorePath)
+    var df = spark.read.option("header", "true").csv(PlayStorePath)
 
     df.createOrReplaceTempView("data")
 
-    //This will get all apps WITHOUT merging categories, WITHOUT size and WITHOUT array of strings in genre.
-    //Dates are also not being converted properly.
+    //This will get all apps WITHOUT merging categories. Also make sure that default values are respected
     //TODO: fix missing parts, then modify query to select only unique apps. Merge missing categories later
-    spark.sql("" +
+
+    df = spark.sql("" +
       "Select App, " +
       "       Category as Categories," +
-      "       Rating, " +
+      "       CASE" +
+      "         WHEN Rating = 'NaN' then null" +
+      "         ELSE Rating" +
+      "       END AS Rating, " +
       "       Reviews, " +
+      "       CASE " +
+      "         WHEN Size LIKE '%M' then CAST(SUBSTRING(Size, 1, (LENGTH(Size)-1)) AS DOUBLE)" +
+      "         ELSE null" +
+      "       END AS Size," +
       "       Installs," +
       "       Type," +
       "       CAST(Price as DECIMAL(9,2)) * 0.9 as Price," +
       "       `Content Rating` as Content_Rating," +
       "       Genres," +
-      "       CAST(`Last Updated` as date) as Last_Updated," +
+      "       TO_TIMESTAMP(`Last Updated`, 'MMMM d, yyyy') as Last_Updated," +
       "       `Current Ver` as Current_Version," +
       "       `Android Ver` as Minimum_Android_Version " +
-      "FROM data d")
+      "FROM data d " +
+      "ORDER BY App ASC")
+
+    df.withColumn("Genres",functions.split(df("Genres"),";"))
   }
 
   def main(args : Array[String]) {
